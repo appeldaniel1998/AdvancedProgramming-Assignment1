@@ -6,6 +6,7 @@
 #include "stdlib.h"
 #include "unistd.h"
 #include <string.h>
+#include "mylink.c"
 
 int flag = 0;
 int handlerFinished = 0;
@@ -19,12 +20,82 @@ void handle_sigint(int sig) {
     }
 }
 
+/*
+removes the newline and space character from the end and start of a char*
+*/
+void removeWhiteSpace(char *buf) {
+    if (buf[strlen(buf) - 1] == ' ' || buf[strlen(buf) - 1] == '\n')
+        buf[strlen(buf) - 1] = '\0';
+    if (buf[0] == ' ' || buf[0] == '\n') memmove(buf, buf + 1, strlen(buf));
+}
+
+/*
+tokenizes char* buf using the delimiter c, and returns the array of strings in param
+and the size of the array in pointer nr
+*/
+void tokenize_buffer(char **param, int *nr, char *buf, const char *c) {
+    char *token;
+    token = strtok(buf, c);
+    int pc = -1;
+    while (token) {
+        param[++pc] = malloc(sizeof(token) + 1);
+        strcpy(param[pc], token);
+        removeWhiteSpace(param[pc]);
+        token = strtok(NULL, c);
+    }
+    param[++pc] = NULL;
+    *nr = pc;
+}
+
+/*
+loads and executes a series of external commands that are piped together
+*/
+void executePiped(char **buf, int nr) {//can support up to 10 piped commands
+    if (nr > 10) return;
+
+    int fd[10][2], i, pc;
+    char *argv[100];
+
+    for (i = 0; i < nr; i++) {
+        tokenize_buffer(argv, &pc, buf[i], " ");
+        if (i != nr - 1) {
+            if (pipe(fd[i]) < 0) {
+                perror("pipe creating was not successfull\n");
+                return;
+            }
+        }
+        if (fork() == 0) {//child1
+            if (i != nr - 1) {
+                dup2(fd[i][1], 1);
+                close(fd[i][0]);
+                close(fd[i][1]);
+            }
+
+            if (i != 0) {
+                dup2(fd[i - 1][0], 0);
+                close(fd[i - 1][1]);
+                close(fd[i - 1][0]);
+            }
+            execvp(argv[0], argv);
+            perror("invalid input ");
+            exit(1);//in case exec is not successfull, exit
+        }
+        //parent
+        if (i != 0) {//second process
+            close(fd[i - 1][0]);
+            close(fd[i - 1][1]);
+        }
+        wait(NULL);
+    }
+}
+
 int main() {
     char command[1024];
     char *token;
     char *outfile;
     int i, fd, amper, redirect, retid, status, processStatus;
     char *argv[10];
+    int argc1;
     pid_t pid;
 
     while (1) {
@@ -32,6 +103,8 @@ int main() {
 
         printf("%s: ", prompt);
         fgets(command, 1024, stdin);
+        char buf[1024];
+        strcpy(buf, command);
 
         if (handlerFinished == 1) {
             continue;
@@ -48,13 +121,36 @@ int main() {
             i++;
         }
         argv[i] = NULL;
+        int argc = i - 1;
+        argc1 = i;
 
         /* Is command empty */
         if (argv[0] == NULL)
             continue;
 
+        int nr = 0;
+        if (strchr(buf, '|')) {
+            char *buffer[100];
+            tokenize_buffer(buffer, &nr, buf, "|");
+            executePiped(buffer, nr);
+            continue;
+        }
+
         if (strcmp(argv[0], "quit") == 0) {
             exit(0);
+        }
+
+        if (argc1 == 3 && strcmp(argv[1], "=") == 0 && ((argv[0][0]) == '$')) {
+            insertFirst(argv[0], argv[2]);
+            continue;
+        }
+        if (strcmp(argv[0], "echo") == 0 && argc1 > 1) {
+            for (int j = 1; j < argc1; j++) {
+                struct node *x = find(argv[j]);
+                if (x != NULL) {
+                    argv[j] = x->value;
+                }
+            }
         }
 
         //changing prompt
@@ -78,8 +174,6 @@ int main() {
                 perror("getcwd() error");
                 exit(1);
             }
-
-
         }
 
         /* Does command line end with & */
@@ -94,27 +188,26 @@ int main() {
             continue;
         }
 
-        if (!strcmp(argv[i - 2], ">")) {
-            redirect = 1;
-            argv[i - 2] = NULL;
-            outfile = argv[i - 1];
-        } else if (!strcmp(argv[i - 2], "2>")) {
-            redirect = 2;
-            argv[i - 2] = NULL;
-            outfile = argv[i - 1];
-        } else if (!strcmp(argv[i - 2], ">>")) {
-            redirect = 3;
-            argv[i - 2] = NULL;
-            outfile = argv[i - 1];
-        } else redirect = 0;
+        if (argc > 1) {
+            if (!strcmp(argv[i - 2], ">")) {
+                redirect = 1;
+                argv[i - 2] = NULL;
+                outfile = argv[i - 1];
+            } else if (!strcmp(argv[i - 2], "2>")) {
+                redirect = 2;
+                argv[i - 2] = NULL;
+                outfile = argv[i - 1];
+            } else if (!strcmp(argv[i - 2], ">>")) {
+                redirect = 3;
+                argv[i - 2] = NULL;
+                outfile = argv[i - 1];
+            } else redirect = 0;
+        }
 
         /* for commands not part of the shell command language */
         pid = fork();
         if (pid == 0) {
             flag = 1;
-            for (int i = 0; i < 100000; i++) {
-                printf("%d\n", i);
-            }
             /* redirection of IO ? */
             if (redirect == 1) {
                 fd = creat(outfile, 0660);
