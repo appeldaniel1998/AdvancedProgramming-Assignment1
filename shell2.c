@@ -97,7 +97,7 @@ int main() {
     char *argv[10];
     int argc1;
     pid_t pid;
-    int ifcounter=0;
+    int ifcounter = 0;
 
     while (1) {
         signal(SIGINT, handle_sigint); // Register signal handler for SIGINT
@@ -107,7 +107,6 @@ int main() {
         char buf[1024];
         strcpy(buf, command);
 
-        
 
         if (handlerFinished == 1) {
             continue;
@@ -131,39 +130,114 @@ int main() {
         if (argv[0] == NULL)
             continue;
 
-        // pipe
-        int nr = 0;
-        if (strchr(buf, '|')) {
+        // exiting
+        if (strcmp(argv[0], "quit") == 0 || strcmp(argv[0], "quit\n") == 0) {
+            exit(0);
+        }
+
+        //if command
+        else if (strcmp(argv[0], "if") == 0) {
+
+            pid = fork();
+            if (pid == 0) {
+                flag = 1;
+                char statement[4096] = "";
+                char *semi = ";";
+                for (int j = 0; j < argc1; j++) {
+                    if (strcmp(argv[j], "if") == 0) {
+                        ifcounter++;
+                    }
+                    if (strcmp(argv[j], "fi") == 0 || strcmp(argv[j], "fi;") == 0) {
+                        ifcounter--;
+                    }
+                    struct node *x = find(argv[j]);
+                    if (x != NULL) {
+                        argv[j] = x->value;
+                    }
+                    strcat(statement, argv[j]);
+                    strcat(statement, " ");
+                }
+                if (!(strcmp(argv[argc1 - 1], "then") == 0 || strcmp(argv[argc1 - 1], "else") == 0))
+                    strcat(statement, semi);
+
+                while (ifcounter > 0) {
+                    printf("> ");
+                    char reading[1024];
+                    fgets(reading, 1024, stdin);
+                    char buf2[1024];
+                    strcpy(buf2, reading);
+                    reading[strlen(reading) - 1] = '\0';
+
+                    int k = 0;
+                    char *readargv[100];
+                    char *tokens = strtok(reading, " ");
+                    while (tokens != NULL) {
+                        readargv[k] = tokens;
+                        tokens = strtok(NULL, " ");
+                        k++;
+                    }
+                    readargv[k] = NULL;
+                    int argcRead = k;
+
+                    for (int j = 0; j < argcRead; j++) {
+                        if (strcmp(readargv[j], "if") == 0) {
+                            ifcounter++;
+                        }
+                        if (strcmp(readargv[j], "fi;") == 0 || strcmp(readargv[j], "fi") == 0) {
+                            ifcounter--;
+                        }
+                        struct node *x = find(readargv[j]);
+                        if (x != NULL) {
+                            argv[j] = x->value;
+                        }
+                        strcat(statement, readargv[j]);
+                        strcat(statement, " ");
+                    }
+                    if (!(strcmp(readargv[argcRead - 1], "then") == 0 || strcmp(readargv[argcRead - 1], "else") == 0))
+                        strcat(statement, semi);
+                    strcat(statement, " ");
+                }
+                int exitStatus = system(statement);
+                exit(exitStatus);
+            } else {
+                flag = 2;
+                waitpid(pid, &processStatus, 0);
+                flag = 0;
+                continue;
+            }
+            continue;
+        }
+
+            // pipe
+        else if (strchr(buf, '|')) {
+            int nr = 0;
             char *buffer[100];
             tokenize_buffer(buffer, &nr, buf, "|");
             executePiped(buffer, nr);
             continue;
         }
 
-        // exitting
-        if (strcmp(argv[0], "quit") == 0) {
-            exit(0);
-        }
+
 
         // exit status
-        if (strcmp(argv[0], "echo") == 0 && strcmp(argv[1], "$?") == 0) {
+        else if (strcmp(argv[0], "echo") == 0 && strcmp(argv[1], "$?") == 0) {
             printf("Previous command exited with status: %d\n", WEXITSTATUS(processStatus));
             continue;
         }
 
 
         // saving variable
-        if (argc1 == 3 && strcmp(argv[1], "=") == 0 && ((argv[0][0]) == '$')) {
+        else if (argc1 == 3 && strcmp(argv[1], "=") == 0 && ((argv[0][0]) == '$')) {
             insertFirst(argv[0], argv[2]);
             continue;
         }
 
 
         // read comand
-        if (strcmp(argv[0], "read") == 0 && argc1>1){
+        else if (strcmp(argv[0], "read") == 0 && argc1 > 1) {
 
             char reading[1024];
-            fgets(reading,1024,stdin);
+            fgets(reading, 1024, stdin);
             char buf2[1024];
             strcpy(buf2, reading);
             reading[strlen(reading) - 1] = '\0';
@@ -180,30 +254,30 @@ int main() {
             int argcRead = k;
 
             int j;
-            for (j=0; j< argc && j<argcRead; j++){
-                char v[1024]="$";
-                strcat(v,argv[j+1]);
-                insertFirst(v,readargv[j]);
+            for (j = 0; j < argc && j < argcRead; j++) {
+                char v[1024] = "$";
+                strcat(v, argv[j + 1]);
+                insertFirst(v, readargv[j]);
             }
-            if (j==argc && j <argcRead){
+            if (j == argc && j < argcRead) {
                 j--;
-                char v[1024]="$";
-                strcat(v,argv[j+1]);
-                char a[1024]="";
-                for (int l=j; l<argcRead;l++){
-                   strcat(a,readargv[l]);
-                   if (l!=argcRead-1){
-                   strcat(a, " ");
-                   }
+                char v[1024] = "$";
+                strcat(v, argv[j + 1]);
+                char a[1024] = "";
+                for (int l = j; l < argcRead; l++) {
+                    strcat(a, readargv[l]);
+                    if (l != argcRead - 1) {
+                        strcat(a, " ");
+                    }
                 }
-                insertFirst(v,a);
+                insertFirst(v, a);
             }
 
-            if (j< argc && j== argcRead){
-                for (int l=j; l<argc;l++){
-                    char v[1024]="$";
-                    strcat(v,argv[l+1]);
-                    insertFirst(v,""); 
+            if (j < argc && j == argcRead) {
+                for (int l = j; l < argc; l++) {
+                    char v[1024] = "$";
+                    strcat(v, argv[l + 1]);
+                    insertFirst(v, "");
                 }
             }
             continue;
@@ -212,31 +286,30 @@ int main() {
 
 
         // getting echo ready
-        if (strcmp(argv[0], "echo") == 0 && argc1 > 1) {
+        else if (strcmp(argv[0], "echo") == 0 && argc1 > 1) {
             for (int j = 1; j < argc1; j++) {
-                if (argv[j][0]=='$'){
+                if (argv[j][0] == '$') {
                     struct node *x = find(argv[j]);
                     if (x != NULL) {
                         argv[j] = x->value;
-                    }
-                    else{
-                        argv[j]="";
+                    } else {
+                        argv[j] = "";
                     }
                 }
             }
         }
 
         //changing prompt
-        if (strcmp(argv[0], "prompt") == 0 && strcmp(argv[1], "=") == 0) {
+        else if (strcmp(argv[0], "prompt") == 0 && strcmp(argv[1], "=") == 0) {
             printf("changing the prompt\n");
-            char* temp = (char*) malloc(sizeof (argv[2]));
+            char *temp = (char *) malloc(sizeof(argv[2]));
             strcpy(temp, argv[2]);
             prompt = temp;
             continue;
         }
 
         // changing directory
-        if (strcmp(argv[0], "cd") == 0 && argv[1] != NULL) {
+        else if (strcmp(argv[0], "cd") == 0 && argv[1] != NULL) {
             // Change the current working directory to example_dir
             if (chdir(argv[1]) != 0) {
                 perror("chdir() error");
@@ -253,86 +326,6 @@ int main() {
             }
         }
 
-
-        if (strcmp(argv[0],"if") == 0){
-            
-            char statment[4096] = "";
-            char *semi=";";
-            for (int j=0; j<argc1; j++){
-                if (strcmp(argv[j],"if")==0){
-                    ifcounter++;
-                }
-                if (strcmp(argv[j],"fi")==0){
-                    ifcounter--;
-                }
-                struct node *x= find(argv[j]);
-                if (x!= NULL){
-                    argv[j]=x->value;
-                }
-                strcat(statment, argv[j]);
-                strcat(statment," ");
-            }
-            strcat(statment, semi);
-            printf("statment = %s\n",statment);
-            printf("ifcounter= %d\n",ifcounter);
-            
-            
-            while (ifcounter>0){
-                printf(">");
-                char reading[1024];
-                fgets(reading,1024,stdin);
-                char buf2[1024];
-                strcpy(buf2, reading);
-                reading[strlen(reading) - 1] = '\0';
-
-                int k = 0;
-                char *readargv[100];
-                char *tokens = strtok(reading, " ");
-                while (tokens != NULL) {
-                    readargv[k] = tokens;
-                    tokens = strtok(NULL, " ");
-                    k++;
-                }
-                readargv[k] = NULL;
-                int argcRead = k;
-
-                for (int j=0; j<argcRead; j++){
-                if (strcmp(readargv[j],"if")==0){
-                    ifcounter++;
-                }
-                if (strcmp(readargv[j],"fi")==0){
-                    ifcounter--;
-                }
-                struct node *x= find(readargv[j]);
-                if (x!= NULL){
-                    argv[j]=x->value;
-                }
-                strcat(statment, readargv[j]);
-                strcat(statment," ");
-            }
-            strcat(statment, semi);
-            strcat(statment, " ");
-            // printf("statment = %s\n",statment);
-            // printf("ifcounter= %d\n",ifcounter);
-                
-            }
-            pid = fork();
-            if (pid == 0) {
-                flag = 1;
-                system(statment);
-            }
-            else{
-                flag = 2;
-                waitpid(pid, &processStatus, 0);
-                flag = 0;
-            }
-
-        }
-
-
-
-
-
         /* Does command line end with & */
         if (!strcmp(argv[i - 1], "&")) {
             amper = 1;
@@ -340,7 +333,7 @@ int main() {
         } else
             amper = 0;
 
-        
+
 
 
         // redirects
@@ -396,13 +389,14 @@ int main() {
                 close(fd);
                 /* stdout is now redirected */
             }
-            execvp(argv[0], argv);
-        } 
-        else {
+            int exitStatus = execvp(argv[0], argv);
+            exit(exitStatus);
+        } else {
             // parent process
             flag = 2;
             waitpid(pid, &processStatus, 0);
             flag = 0;
+            continue;
         }
 
         /* parent continues here */
