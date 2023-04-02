@@ -23,18 +23,18 @@ struct node *head = NULL;
 struct node *current = NULL;
 
 //display the list
-void printList() {
-    struct node *ptr = head;
-    printf("[ ");
-
-    //start from the beginning
-    while (ptr != NULL) {
-        printf("(%s,%s) ", ptr->var, ptr->value);
-        ptr = ptr->next;
-    }
-
-    printf(" ]\n");
-}
+//void printList() {
+//    struct node *ptr = head;
+//    printf("[ ");
+//
+//    //start from the beginning
+//    while (ptr != NULL) {
+//        printf("(%s,%s) ", ptr->var, ptr->value);
+//        ptr = ptr->next;
+//    }
+//
+//    printf(" ]\n");
+//}
 
 //insert link at the first location
 void insertFirst(char *var, char *value) {
