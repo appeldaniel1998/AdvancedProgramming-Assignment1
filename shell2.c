@@ -135,6 +135,15 @@ void mainLoopInnards(char *command) {
     if (strcmp(argv[0], "quit") == 0 || strcmp(argv[0], "quit\n") == 0) {
         exit(0);
     }
+    else if (strcmp(argv[0], "!!") == 0) {
+        char *currBackCommand = get_item_at_index(headCommandList, 0);
+        insert_beginning(&headCommandList, "!!");
+        if (currBackCommand != NULL) {
+            if (strcmp(currBackCommand, "!!") == 0) return;
+            mainLoopInnards(currBackCommand);
+        }
+        return;
+    }
         //if command
     else if (strcmp(argv[0], "if") == 0) {
         flag = 1;
