@@ -3,6 +3,7 @@
 #include <string.h>
 
 // Define the structure for the list node
+int sizeOfList = 0;
 typedef struct stringNode {
     char* data;
     struct stringNode* prev;
@@ -21,6 +22,7 @@ node_t* create_node(char* data) {
 
 // Function to insert a new node at the beginning of the list
 void insert_beginning(node_t** head_ref, char* data) {
+    sizeOfList++;
     node_t* new_node = create_node(data);
     new_node->next = *head_ref;
     if (*head_ref != NULL) {
