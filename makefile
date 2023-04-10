@@ -6,12 +6,12 @@ AR = ar
 FLAGS = -Wall -g
 
 run: main
-	./shell
+	./myshell
 
 all: main
 
 main: myshell.o
-	$(CC) -pthread -o shell myshell.c $(FLAGS)
+	$(CC) -pthread -o myshell myshell.c $(FLAGS)
 
 .PHONY: clean all
 
