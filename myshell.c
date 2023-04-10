@@ -310,10 +310,6 @@ void mainLoopInnards(char *command) {
         return;
     }
 
-
-
-
-
         //changing prompt
     else if (strcmp(argv[0], "prompt") == 0 && strcmp(argv[1], "=") == 0) {
         insert_beginning(&headCommandList, bufToList);
@@ -351,6 +347,7 @@ void mainLoopInnards(char *command) {
         amper = 0;
 
     // redirects
+    redirect = 0;
     if (argc > 1) {
         if (!strcmp(argv[i - 2], ">")) {
             redirect = 1;
@@ -393,7 +390,7 @@ void mainLoopInnards(char *command) {
             close(fd);
             /* stdout is now redirected */
         } else if (redirect == 3) {
-            fd = open(outfile, O_WRONLY | O_CREAT | O_APPEND, 0660);
+            fd = open(outfile, O_WRONLY | O_CREAT | O_APPEND | O_RDONLY, 0660);
             if (fd == -1) {
                 printf("Error in opening the file\n");
                 exit(1);
@@ -410,12 +407,12 @@ void mainLoopInnards(char *command) {
         flag = 2;
         waitpid(pid, &processStatus, 0);
         flag = 0;
+
+        /* parent continues here */
+        if (amper == 0)
+            retid = wait(&status);
         return;
     }
-
-    /* parent continues here */
-    if (amper == 0)
-        retid = wait(&status);
 }
 
 int main() {
@@ -490,7 +487,7 @@ int main() {
                 char *currCommandToRun = get_item_at_index(headCommandList, currCommand - 1);
                 char *currCommandToRunWithEnter = (char *) malloc(sizeof(currCommandToRun) + sizeof(char));
                 strcpy(currCommandToRunWithEnter, currCommandToRun);
-                strcat(currCommandToRunWithEnter, "\n");
+//                strcat(currCommandToRunWithEnter, "\n");
                 mainLoopInnards(currCommandToRunWithEnter);
             }
             exceptingAnswer = 0;
