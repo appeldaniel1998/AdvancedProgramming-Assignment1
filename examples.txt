@@ -1,0 +1,105 @@
+hello: date >> myfile
+hello: cat myfile
+Mon 10 Apr 2023 04:36:33 PM IDT
+hello: date -u >> myfile
+hello: cat myfile
+Mon 10 Apr 2023 04:36:33 PM IDT
+Mon 10 Apr 2023 01:36:50 PM UTC
+hello: wc -l < myfile
+wc: '<': No such file or directory
+ 2 myfile
+ 2 total
+hello: prompt = hi 
+changing the prompt
+hi: mkdir mydir
+hi: cd mydir
+New current working directory: 
+/home/yehudit/Documents/arielUniversity/3rd_year_2nd_semester/codingcourse/ex1/mydir
+hi: pwd
+/home/yehudit/Documents/arielUniversity/3rd_year_2nd_semester/codingcourse/ex1/mydir
+hi: touch file1 file2 file3
+hi: ls
+file1  file2  file3
+hi: !!
+file1  file2  file3
+hi: echo abc xyz
+abc xyz
+hi: ls
+file1  file2  file3
+hi: echo $?
+Previous command exited with status: 0
+hi: ls no_such_file
+ls: cannot access 'no_such_file': No such file or directory
+hi: echo $?
+Previous command exited with status: 2
+hi: ls no_such_file 2> file
+hi: ^C
+You typed Control-C!
+
+hi: cat > colors.txt
+blue
+black
+red
+red
+green
+blue
+green
+red
+red
+blue
+hi: cat colors.txt
+blue
+black
+red
+red
+green
+blue
+green
+red
+red
+blue
+hi: cat colors.txt | cat | cat | cat
+blue
+black
+red
+red
+green
+blue
+green
+red
+red
+blue
+hi: sort colors.txt | uniq -c | sort -r | head -3
+      4 red
+      3 blue
+      2 green
+hi: 
+hi: 
+hi: 
+hi: 
+hi: read a b c d
+12 34 56 78 90 1112 1314
+hi: echo $a
+12
+hi: echo $d
+78 90 1112 1314
+hi: $person = David
+hi: echo person
+person
+hi: echo $person
+David
+echo $person
+echo person
+$person = David
+echo $d
+hi: 
+78 90 1112 1314
+hi: if date | grep Fri
+> then echo "shabbat shalom"
+> else echo "hard way to go"
+> fi
+hard way to go
+hi: 
+hi: 
+hi: 
+hi: quit
