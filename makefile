@@ -10,7 +10,7 @@ run: main
 
 all: main
 
-main: main.o
+main: myshell.o
 	$(CC) -pthread -o shell myshell.c $(FLAGS)
 
 .PHONY: clean all
